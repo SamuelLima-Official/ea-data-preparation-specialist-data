@@ -1,0 +1,124 @@
+{
+  "Load Agency": {
+    "action": "edgemart",
+    "parameters": {
+      "alias": "Agency_Detail"
+    }
+  },
+  "Add Temp Class": {
+    "action": "computeExpression",
+    "parameters": {
+      "source": "Filter 2015",
+      "mergeWithSource": true,
+      "computedFields": [
+        {
+          "defaultValue": "Continental",
+          "name": "TempClass",
+          "saqlExpression": "case when Temperature < 25 then \"Polar\" when Temperature >= 25 and Temperature <= 50 then \"Cool\" when Temperature >= 51 and Temperature <= 85 then \"Continental\" when Temperature > 85 then \"Tropical\" end",
+          "label": "TempClass",
+          "type": "Text"
+        }
+      ]
+    }
+  },
+  "Filter Agency Records": {
+    "action": "filter",
+    "parameters": {
+      "filter": "Agency:equals:false",
+      "source": "Add Agency Fields"
+    }
+  },
+  "Load Account": {
+    "action": "sfdcDigest",
+    "parameters": {
+      "fields": [
+        {
+          "name": "AccountNumber"
+        },
+        {
+          "name": "Name"
+        },
+        {
+          "name": "Phone"
+        },
+        {
+          "name": "ShippingCity"
+        },
+        {
+          "name": "ShippingCountry"
+        },
+        {
+          "name": "ShippingPostalCode"
+        },
+        {
+          "name": "ShippingState"
+        },
+        {
+          "name": "ShippingStreet"
+        }
+      ],
+      "object": "Account"
+    }
+  },
+  "Load Seed Orders": {
+    "action": "edgemart",
+    "parameters": {
+      "alias": "Seed_Bank_Orders"
+    }
+  },
+  "Create Order History": {
+    "action": "sfdcRegister",
+    "parameters": {
+      "name": "Order History",
+      "alias": "order history",
+      "source": "Add Seed Orders"
+    }
+  },
+  "Augment Temp Class": {
+    "action": "augment",
+    "parameters": {
+      "left": "Load Account",
+      "right": "Add Temp Class",
+      "relationship": "Climate",
+      "operation": "LookupSingleValue",
+      "left_key": [
+        "ShippingCountry"
+      ],
+      "right_key": [],
+      "right_select": [
+        "TempClass"
+      ]
+    }
+  },
+  "Load Climate": {
+    "action": "edgemart",
+    "parameters": {
+      "alias": "Global_Climates"
+    }
+  },
+  "Filter 2015": {
+    "action": "filter",
+    "parameters": {
+      "filter": "Date_Year < '2015'",
+      "source": "Load Climate"
+    }
+  },
+  "Add Agency Fields": {
+    "action": "append",
+    "parameters": {
+      "sources": [
+        "Augment Temp Class",
+        "Load Agency"
+      ]
+    }
+  },
+  "Add Seed Orders": {
+    "action": "append",
+    "parameters": {
+      "sources": [
+        "Filter Agency Records",
+        "Load Seed Orders"
+      ]
+    }
+  }
+}
