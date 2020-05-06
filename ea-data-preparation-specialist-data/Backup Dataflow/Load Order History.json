@@ -1,0 +1,173 @@
+{
+  "Load Agency": {
+    "action": "edgemart",
+    "parameters": {
+      "alias": "Agency_Detail"
+    }
+  },
+  "Add Temp Class": {
+    "action": "computeExpression",
+    "parameters": {
+      "source": "Filter 2015",
+      "mergeWithSource": true,
+      "computedFields": [
+        {
+          "defaultValue": "Continental",
+          "name": "TempClass",
+          "saqlExpression": "case when Temperature < 25 then \"Polar\" when Temperature >= 25 and Temperature <= 50 then \"Cool\" when Temperature >= 51 and Temperature <= 85 then \"Continental\" when Temperature > 85 then \"Tropical\" end",
+          "label": "TempClass",
+          "type": "Text"
+        }
+      ]
+    }
+  },
+  "Filter Agency Records": {
+    "action": "filter",
+    "parameters": {
+      "filter": "IsAgency:EQ:TRUE",
+      "source": "ID Agency Records"
+    }
+  },
+  "Load Account": {
+    "action": "sfdcDigest",
+    "parameters": {
+      "fields": [
+        {
+          "name": "AccountNumber"
+        },
+        {
+          "name": "Name"
+        },
+        {
+          "name": "Phone"
+        },
+        {
+          "name": "ShippingCity"
+        },
+        {
+          "name": "ShippingCountry"
+        },
+        {
+          "name": "ShippingPostalCode"
+        },
+        {
+          "name": "ShippingState"
+        },
+        {
+          "name": "ShippingStreet"
+        }
+      ],
+      "object": "Account"
+    }
+  },
+  "Load Seed Orders": {
+    "action": "edgemart",
+    "parameters": {
+      "alias": "seed_bank_orders"
+    }
+  },
+  "Create Order History": {
+    "action": "sfdcRegister",
+    "parameters": {
+      "name": "Order History",
+      "alias": "order_history",
+      "source": "Add Seed Orders"
+    }
+  },
+  "Augment Temp Class": {
+    "action": "augment",
+    "parameters": {
+      "right_key": [
+        "Country"
+      ],
+      "left": "Filter Agency Records",
+      "left_key": [
+        "ShippingCountry"
+      ],
+      "right_select": [
+        "Date",
+        "Country",
+        "Temperature",
+        "TempClass"
+      ],
+      "right": "Add Temp Class",
+      "relationship": "Climate",
+      "operation": "LookupSingleValue"
+    }
+  },
+  "Load Climate": {
+    "action": "edgemart",
+    "parameters": {
+      "alias": "Global_Climates"
+    }
+  },
+  "Add Seed Orders": {
+    "action": "augment",
+    "parameters": {
+      "right_key": [
+        "AccountNumber"
+      ],
+      "left": "Load Seed Orders",
+      "left_key": [
+        "Agency_ID"
+      ],
+      "right_select": [
+        "AccountNumber",
+        "AgencyDetail.Acres",
+        "AgencyDetail.Currency",
+        "AgencyDetail.Latitude",
+        "AgencyDetail.Longitude",
+        "AgencyDetail.SubRegion",
+        "AgencyDetail.Region"
+      ],
+      "right": "Augment Temp Class",
+      "relationship": "SeedOrder",
+      "operation": "LookupSingleValue"
+    }
+  },
+  "Add Agency Fields": {
+    "action": "augment",
+    "parameters": {
+      "right_key": [
+        "AccountNumber"
+      ],
+      "left": "Load Account",
+      "left_key": [
+        "AccountNumber"
+      ],
+      "right_select": [
+        "Acres",
+        "Currency",
+        "Latitude",
+        "Longitude",
+        "Region",
+        "SubRegion"
+      ],
+      "right": "Load Agency",
+      "relationship": "AgencyDetail",
+      "operation": "LookupSingleValue"
+    }
+  },
+  "Filter 2015": {
+    "action": "filter",
+    "parameters": {
+      "filter": "Date_Year:EQ:2015",
+      "source": "Load Climate"
+    }
+  },
+  "ID Agency Records": {
+    "action": "computeExpression",
+    "parameters": {
+      "source": "Add Agency Fields",
+      "mergeWithSource": true,
+      "computedFields": [
+        {
+          "name": "IsAgency",
+          "saqlExpression": "case\nwhen Phone is null then \"FALSE\"\nelse \"TRUE\"\nend",
+          "label": "IsAgency",
+          "type": "Text"
+        }
+      ]
+    }
+  }
+}
